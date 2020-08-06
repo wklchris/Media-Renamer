@@ -11,6 +11,11 @@
    2. [例2：剧集 ID 检索](#例2剧集-id-检索)
 4. [许可证](#许可证)
 
+> 声明：本仓库使用了 TMDb API，但未经TMDb认可或认证。*This product uses the TMDb API but is not endorsed or certified by TMDb.*
+> 
+> <img src="./TMDb-logo-alt-long.svg" alt="TMDb logo" width="40%" />
+>
+> *本声明旨在遵守 [TMDb API 使用条款](https://www.themoviedb.org/documentation/api/terms-of-use)的第三条“归因”（Attribution）中的要求。*
 
 ## 特性
 
@@ -20,6 +25,7 @@
 - [x] 优化返回文本的语言。目前默认是简体中文（zh-CN）。 
 - [x] 切换到 API 而不是从网页读取。
 - [ ] 实现重命名功能。
+- [ ] 从命令行传递参数。
 - [ ] 对电影的检索操作。
 
 
