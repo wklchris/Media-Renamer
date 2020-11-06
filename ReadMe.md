@@ -9,6 +9,7 @@
 3. [使用](#使用)
    1. [例1：关键词检索](#例1关键词检索)
    2. [例2：剧集 ID 检索](#例2剧集-id-检索)
+   3. [例3：完整的测试运行示例](#例3完整的测试运行示例)
 4. [许可证](#许可证)
 
 > 声明：本仓库使用了 TMDb API，但未经TMDb认可或认证。*This product uses the TMDb API but is not endorsed or certified by TMDb.*
@@ -24,7 +25,7 @@
 - [x] 从给定页面读取剧集列表，并整理为默认的文件名。
 - [x] 优化返回文本的语言。目前默认是简体中文（zh-CN）。 
 - [x] 切换到 API 而不是从网页读取。
-- [ ] 实现重命名功能。
+- [x] 实现重命名功能。
 - [ ] 从命令行传递参数。
 - [ ] 对电影的检索操作。
 
@@ -78,12 +79,18 @@ pip install requests
 
 ## 使用
 
-以下内容均以默认 `settings.json` 的 `filename_format_tv` 配置为准：
+以下内容的文件命名格式，均以默认 `settings.json` 的 `filename_format_tv` 配置为准：
 ```
 "{media_title}-S{tv_season}E{tv_episode}.{tv_eptitle}"
 ```
 
-以下均以 Python 命令行为例。不过，仍然建议读者参考 `media-renamer.py` 中的内容撰写 `.py` 文件。
+本工具主要提供了以下几个方法：
+
+* `search(search_str)`: 在 TMDB 上搜索 search_str 对应的剧集内容。
+* `search_id_series(search_id)`: 在 TMDB 上搜索 ID 号为 search_id 的剧集。注意：剧集 ID 与剧集某一季的季 ID 并不相同。
+* `rename_local_files()`: 搜索成员变量 `self.workdir` 对应目录下的视频与字幕文件，根据之前的搜索内容，将这些文件重命名。
+
+以下均以 Python 命令行为例。不过，仍然**建议读者参考 media-renamer.py 中的内容**撰写脚本文件。
 
 ### 例1：关键词检索
 
@@ -137,6 +144,85 @@ Select: [51882] 第 1 季 (Season 01, 1995-10-04; total 026 episodes)
 新世纪福音战士-S01E03.不响的电话（A transfer）
 ...（省略）
 新世纪福音战士-S01E26.在世界中心呼唤爱的野兽（Take care of yourself.）
+```
+
+### 例3：完整的测试运行示例
+
+对于 `media-renamer.py` 文件，如果它包含下述内容：
+
+```python
+from TV import TMDB
+
+scraper = TMDB(workdir='.')
+scraper.search("白色相簿")  
+scraper.make_test_files(total=13)
+scraper.rename_local_files()
+```
+
+用户将在以上代码的运行过程中，执行4次键入：
+
+1. 同例1，从两个“白色相簿”的搜索结果中，选择了“白色相簿2”。
+2. 同例1，从白色相簿2下的两个搜索结果“特别篇”与“第一季”中，选择了“第一季”。
+3. 询问是否重命名供测试而生成的 13 个 mkv 文件，直接回车表示确认。
+4. 询问是否重命名 13 个 ass 文件，直接回车表示确认。
+
+完整的运行结果：
+
+```powershell
+Choose the one that matches:
+01 ~ [28502] 白色相簿 (2009-01-04; ja; JP)
+02 ~ [70072] 白色相簿2 (2013-10-06; zh; JP)
+---
+Select from above (1~2): 2
+Select: [70072] 白色相簿2 (2013-10-06; zh; JP)
+
+Choose the one that matches:
+01 ~ [151373] 特别篇 (Season 00, 2014-05-28; total 002 episodes)
+02 ~ [84675] 第 1 季 (Season 01, 2013-10-06; total 013 episodes)
+---
+Select from above (1~2): 2
+Select: [84675] 第 1 季 (Season 01, 2013-10-06; total 013 episodes)
+Formatted filename example: 白色相簿2-S01E01.WHITE ALBUM
+Testing: Fake 13 files in 'test' folder.
+Old filenames           New filenames
+===============         ===============
++++++1.mkv       白色相簿2-S01E01.WHITE ALBUM.mkv
++++++2.mkv       白色相簿2-S01E02.邻座的钢琴与吉他.mkv
++++++3.mkv       白色相簿2-S01E03.轻音乐同好会再结成.mkv
++++++4.mkv       白色相簿2-S01E04.SOUND OF DESTINY.mkv
++++++5.mkv       白色相簿2-S01E05.彼此相印的心与心.mkv
++++++6.mkv       白色相簿2-S01E06.学园祭开始.mkv
++++++7.mkv       白色相簿2-S01E07.最棒的 最后一天.mkv
++++++8.mkv       白色相簿2-S01E08.须臾冬至.mkv
++++++9.mkv       白色相簿2-S01E09.形如陌路的心与心.mkv
+++++10.mkv       白色相簿2-S01E10.蓦然雪化且静候飞雪再临之时(前篇).mkv
+++++11.mkv       白色相簿2-S01E11.蓦然雪化且静候飞雪再临之时(后篇).mkv
+++++12.mkv       白色相簿2-S01E12.毕业.mkv
+++++13.mkv       白色相簿2-S01E13.传达不到的爱恋.mkv
+--------
+Confirm above renaming? (y/n) [y]:
+Successfully renamed.
+
+Old filenames           New filenames
+===============         ===============
++++++1.ass       白色相簿2-S01E01.WHITE ALBUM.ass
++++++2.ass       白色相簿2-S01E02.邻座的钢琴与吉他.ass
++++++3.ass       白色相簿2-S01E03.轻音乐同好会再结成.ass
++++++4.ass       白色相簿2-S01E04.SOUND OF DESTINY.ass
++++++5.ass       白色相簿2-S01E05.彼此相印的心与心.ass
++++++6.ass       白色相簿2-S01E06.学园祭开始.ass
++++++7.ass       白色相簿2-S01E07.最棒的 最后一天.ass
++++++8.ass       白色相簿2-S01E08.须臾冬至.ass
++++++9.ass       白色相簿2-S01E09.形如陌路的心与心.ass
+++++10.ass       白色相簿2-S01E10.蓦然雪化且静候飞雪再临之时(前篇).ass
+++++11.ass       白色相簿2-S01E11.蓦然雪化且静候飞雪再临之时(后篇).ass
+++++12.ass       白色相簿2-S01E12.毕业.ass
+++++13.ass       白色相簿2-S01E13.传达不到的爱恋.ass
+--------
+Confirm above renaming? (y/n) [y]:
+Successfully renamed.
+
+Check renamed files under folder: test
 ```
 
 ## 许可证

@@ -1,11 +1,15 @@
 import json
+import os
 import re
 import requests
 
 class TMDB():
-    def __init__(self, config_file='settings.json'):
+    def __init__(self, workdir=None, config_file='settings.json'):
         self.data = {'media_type': 'tv'}
         self.regex_unit = re.compile(r'{\w.*?}')
+        self.dir = workdir or os.getcwd()
+        self.video_exts=['.mp4', '.mkv']
+        self.subtitle_exts=['.ass', '.srt']
         self.load_config(config_file)
 
     def __str__(self):
@@ -46,6 +50,76 @@ class TMDB():
         self._get_search_data(select=False)
         self._get_filenames()
 
+    def rename_local_files(self, workdir=None):
+        """Rename local video and subtitle files."""
+        self.dir = workdir or self.dir
+        self._rename_files(exts=self.video_exts)
+        self._rename_files(exts=self.subtitle_exts)
+        print(f'Check renamed files under folder: {self.dir}')
+
+    def make_test_files(self, total=12, video_ext='.mkv', subtitle_ext='.ass'):
+        """Create fake video & subtitle files to test renaming feature."""
+        if os.path.isdir('test'):
+            for f in os.listdir('test'):
+                os.remove(os.path.join('test', f))
+        else:
+            os.makedir('test')
+        self.dir = 'test'
+        
+        def create_file(fname):
+            with open(os.path.join(self.dir, fname), 'w') as f:
+                pass
+        
+        flst = [f"{x+1:+>6d}" for x in range(total)]
+        for f in flst:
+            create_file(f + video_ext)
+            create_file(f + subtitle_ext)
+        
+        print(f"Testing: Fake {total} files in '{self.dir}' folder.")
+
+    def _rename_files(self, exts):
+        # Get file list with given extensions
+        local_files = [f for f in os.listdir(self.dir) if os.path.splitext(f)[1] in exts]
+        local_files.sort()
+        if len(local_files) == 0:
+            exts_str = '/'.join([x.lstrip('.') for x in exts])
+            print(f'FAILURE: No file with extension {exts_str} found.')
+            return
+        
+        # Raise error if number of episode is incorrect
+        if len(local_files) > len(self.tv_fnames):
+            tmdb_lst = [(self.tv_fnames[i] if i < len(self.tv_fnames) else 'N/A') for i in range(len(local_files))]
+            file_lst = '\n'.join([f"{i+1:0>2d}\t{f}\t{tmdb_lst[i]}" for i,f in enumerate(local_files)])
+            print(f"FAILURE: You have more local eposides than TMDB records.\n\n{file_lst}")
+            return
+        
+        # Check before renaming video files
+        print('Old filenames\t\tNew filenames')
+        print('{0}\t\t{0}'.format('='*15))
+        rename_lst = [None for _ in range(len(local_files))]
+        col_width = max(max([len(f) for f in local_files]), 14) + 2
+        for i, file in enumerate(local_files):
+            _, ext = os.path.splitext(file)
+            new_file = self.tv_fnames[i] + ext
+            rename_lst[i] = (file, new_file)
+            print(file.ljust(col_width), new_file)
+        print('--------')
+        
+        user_select = None
+        while user_select is None:
+            user_input = input('Confirm above renaming? (y/n) [y]: ').lower()
+            if user_input == 'y' or user_input == '':
+                user_select = True
+            elif user_input == 'n':
+                user_select = False
+        
+        # Rename
+        if user_select:
+            for file, new_file in rename_lst:
+                dir_prefix = lambda x: os.path.join(self.dir, x)
+                os.rename(dir_prefix(file), dir_prefix(new_file))
+            print('Successfully renamed.\n')
+
     def _get_filenames(self):
         n = len(self.search_data[self._data_key])
         self.tv_fnames = [None for _ in range(n)]
@@ -54,6 +128,7 @@ class TMDB():
             self.data['tv_episode'] = ep['episode_number']
             self.data['tv_eptitle'] = ep['name']
             self.tv_fnames[i] = self._regex_stringfy(self.data['filename_format_tv'])
+        print(f"Formatted filename example: {self.tv_fnames[0]}")
 
     def _get_search_data(self, select=True):
         self.url = self._regex_stringfy(self.data[self.search_type])
