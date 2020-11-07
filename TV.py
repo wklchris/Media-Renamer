@@ -150,7 +150,7 @@ class TMDB():
             self.data['tv_season'] = ep['season_number'] 
             self.data['tv_episode'] = ep['episode_number']
             self.data['tv_eptitle'] = ep['name']
-            self.tv_fnames[i] = self._regex_stringfy(self.data['filename_format_tv'])
+            self.tv_fnames[i] = self._regex_stringfy(self.data['filename_format_tv'], validate_fname=True)
         print(f"Formatted filename example: {self.tv_fnames[0]}")
 
     def _get_search_data(self, select=True):
@@ -182,8 +182,10 @@ class TMDB():
             info_str = f"[{media_id}] {title} (Season {current_season:0>2d}, {date}; total {episode_count:0>3d} episodes)"
         return info_str
 
-    def _regex_stringfy(self, input_str):
+    def _regex_stringfy(self, input_str, validate_fname=False):
         s = re.sub(self.regex_unit, lambda x: self._regex_unit_stringfy(x), input_str)
+        if validate_fname:
+            s = re.sub(r'[\\/:*?"<>|]', '', s)
         return s
 
     def _regex_unit_stringfy(self, regex_match):
