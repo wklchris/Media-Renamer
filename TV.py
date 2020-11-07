@@ -4,12 +4,17 @@ import re
 import requests
 
 class TMDB():
-    def __init__(self, workdir=None, config_file='settings.json'):
+    def __init__(self, workdir=None, api_key=None, config_file='settings.json',
+            video_exts=['.mp4', '.mkv'], subtitle_exts=['.ass', '.srt']
+        ):
         self.data = {'media_type': 'tv'}
         self.regex_unit = re.compile(r'{\w.*?}')
         self.dir = workdir or os.getcwd()
-        self.video_exts=['.mp4', '.mkv']
-        self.subtitle_exts=['.ass', '.srt']
+        self.video_exts = video_exts
+        self.subtitle_exts = subtitle_exts
+        self.api_key = api_key
+        if not os.path.isfile(config_file):
+            self.init_config(config_file)
         self.load_config(config_file)
 
     def __str__(self):
@@ -18,6 +23,21 @@ class TMDB():
         else:
             infostr = 'Nothing selected yet.'
         return infostr
+
+    def init_config(self, config_file):
+        """Initialize the config file (require TMDB V3 API key)."""
+        if self.api_key is None:
+            self.api_key = input("Initializing config file. Please enter your TMDB API key (V3): ")
+        config_data = {
+            "api_key": self.api_key,
+            "filename_format_tv": "{media_title}-S{tv_season}E{tv_episode}.{tv_eptitle}",
+            "language": "zh-CN",
+            "api_search": "https://api.themoviedb.org/3/search/{media_type}?api_key={api_key}&query={search_str}&language={language}",
+            "api_id_series": "https://api.themoviedb.org/3/{media_type}/{media_id}?api_key={api_key}&language={language}",
+            "api_id_season": "https://api.themoviedb.org/3/{media_type}/{media_id}/season/{order_season}?api_key={api_key}&language={language}"
+        }
+        with open(config_file, 'w') as f:
+            json.dump(config_data, f, indent=4)
 
     def load_config(self, config_file):
         """Load/Update the settings JSON file."""
@@ -57,7 +77,7 @@ class TMDB():
         self._rename_files(exts=self.subtitle_exts)
         print(f'Check renamed files under folder: {self.dir}')
 
-    def make_test_files(self, total=12, video_ext='.mkv', subtitle_ext='.ass'):
+    def make_test_files(self, total=12, video_ext=None, subtitle_ext=None):
         """Create fake video & subtitle files to test renaming feature."""
         if os.path.isdir('test'):
             for f in os.listdir('test'):
@@ -71,9 +91,12 @@ class TMDB():
                 pass
         
         flst = [f"{x+1:+>6d}" for x in range(total)]
+        # Use the first supported ext in the ext list if no value is given
+        v_ext = video_ext or self.video_exts[0]
+        s_ext = subtitle_ext or self.subtitle_exts[0]
         for f in flst:
-            create_file(f + video_ext)
-            create_file(f + subtitle_ext)
+            create_file(f + v_ext)
+            create_file(f + s_ext)
         
         print(f"Testing: Fake {total} files in '{self.dir}' folder.")
 

@@ -6,11 +6,12 @@
 
 1. [特性](#特性)
 2. [安装与依赖项](#安装与依赖项)
-3. [使用](#使用)
+3. [快速使用](#快速使用)
+4. [高级使用\*](#高级使用)
    1. [例1：关键词检索](#例1关键词检索)
    2. [例2：剧集 ID 检索](#例2剧集-id-检索)
    3. [例3：完整的测试运行示例](#例3完整的测试运行示例)
-4. [许可证](#许可证)
+5. [许可证](#许可证)
 
 > 声明：本仓库使用了 TMDb API，但未经TMDb认可或认证。*This product uses the TMDb API but is not endorsed or certified by TMDb.*
 > 
@@ -26,8 +27,9 @@
 - [x] 优化返回文本的语言。目前默认是简体中文（zh-CN）。 
 - [x] 切换到 API 而不是从网页读取。
 - [x] 实现重命名功能。
-- [ ] 从命令行传递参数。
-- [ ] 对电影的检索操作。
+- [x] 从命令行传递参数。
+- [ ] 让从命令行输入的 API 密钥能够覆盖配置文件中的密钥。
+- [ ] 对特别篇剧集的特殊处理；或支持在本地文件数量与TMDB不同时，让用户自行选择对哪些文件进行重命名。
 
 
 ## 安装与依赖项
@@ -40,9 +42,13 @@ pip install requests
 
 安装目前通过下载该仓库中的以下文件来实现：
 
-1. `TV.py`：本仓库的核心文件。
-2. 准备一个 `settings.json` 文件，需要包含以下键。用户可以复制下面展示的范例，仅需替换 API 密钥。
-   - **请自行替换 `api_key` 为自己的 API key**。用户需要自行从 TMDB [免费申请 API 密钥](https://developers.themoviedb.org/3/getting-started/introduction)；如果没有账户，请先创建一个免费 TMDB 账户。
+1. `TV.py`：本仓库的核心文件，定义了 TMDB 类。
+2. `settings.json` 文件：如果当前文件夹下没有该文件，会在首次运行时自动生成一个。
+
+   用户需要自行从 TMDB [免费申请 API 密钥](https://developers.themoviedb.org/3/getting-started/introduction)；如果没有账户，请先创建一个免费 TMDB 账户。
+3. `media-renamer.py`: 主执行脚本。
+
+<details><summary>点击展开/折叠 settings.json 的语法说明</summary>
 
 ```json
 {
@@ -55,7 +61,6 @@ pip install requests
     "api_id_season": "https://api.themoviedb.org/3/{media_type}/{media_id}/season/{order_season}?api_key={api_key}&language={language}"
 }
 ```
-<details><summary>点击展开/折叠 settings.json 的详细说明</summary>
 
 各字段的说明：
 - `api_key`: TMDB 的 API 密钥。
@@ -77,20 +82,74 @@ pip install requests
   - `{order_season}`：剧季编号。
 </details>
 
-## 使用
+## 快速使用
 
-以下内容的文件命名格式，均以默认 `settings.json` 的 `filename_format_tv` 配置为准：
-```
-"{media_title}-S{tv_season}E{tv_episode}.{tv_eptitle}"
-```
+用法说明：
 
-本工具主要提供了以下几个方法：
+* 在第一次执行脚本时，如前文所述，用户需要准备从 TMDB 免费申请一个 API 密钥。脚本会自动在同目录下创建一个 `settings.json` 文件，然后将 API 密钥记录在其中；此后的脚本执行，便不再需要重新输入 API 密钥。
+* 要对 `VIDEO_DIR` 目录下的、剧集 `TVNAME` 对应的视频文件进行重命名操作，用户可以执行：
+
+  ```shell
+  # 例：python media-renamer.py 福音战士 -d C:\Videos\EVA
+  python media-renamer.py TVNAME -d VIDEO_DIR
+  ```
+  其中，`-d` 选项表示该剧集（的一季）所在的文件夹；如果不指定，会设置为命令行当前的路径。该文件的主目录下，不应包含该季视频与字幕外的其他文件；一般地，要求字幕文件、视频文件的数量相等，且与 TMDB 中该季的剧集数目相同。
+
+  之后，按提示依次输入序号来选择正确的搜索结果与剧季，并在重命名前检查新旧文件名的对应是否正确。
+* 除了使用剧集名称（或者剧集名称的一部分字词）来进行搜索，用户也可以使用 TMDB 上剧系列的 ID 号来进行检索。
+  
+  例如，《新世纪福音战士》系列（[TMDB链接](https://www.themoviedb.org/tv/890-neon-genesis-evangelion)）的剧系列 ID 号是 890（从网址中可以看出），那么用户可以输入：
+
+  ```shell
+  python media-renamer.py 890 -m -d C:\Videos\EVA
+  ```
+  其中，参数 `-m` 表示使用 ID 搜索模式。
+* 在搜索本地文件时，默认的视频扩展名支持 `.mp4/.mkv`，而字幕扩展名支持 `.srt/.ass`。文件将会按文件名进行排列。
+  
+  用户可以指定用 `-v` 或 `-s` 参数指定其他的扩展名，中间用空格隔开即可：
+  ```shell
+  python media-renamer.py 新世纪福音战士 -d C:\Videos\EVA -v .ts .mp4 .mkv -s .ass -T
+  ```
+* 一个实用的、不带参数值的测试选项 `-T` 会在当前路径下（无视 `-d` 指定的路径）创建一个 `test` 文件夹，并自动生成一系列“虚假”的视频文件与字幕文件，供读者检查重命名的效果。
+  
+  当然，该命令通常不需要用到，因为在正常重命名的最后一步，新旧文件名会被打印在命令行中供读者检查。
+
+最后，用户可以执行 `python media-renamer.py -h` 来查看帮助。下面是一份完整的参数列表：
+
+| 参数 | 类型 | 释义 |
+| --- | --- | --- |
+| searchword | 必选参数 | 搜索字串 |
+| --ID-mode, -m | 开关参数 | 切换到 ID 搜索模式 |
+| --api, -a | 可选参数 | 指定一个 API 密钥。仅在初始化时启动。 |
+| --config, -c | 可选参数 | 指定配置文件（默认是 `'settings.json'`） |
+| --dir, -d | 可选参数 | 指定剧集文件路径（默认时当前目录） |
+| --test, -T | 开关参数 | 启用测试模式（详见上文） |
+| --video-exts, -v | 可选参数列表 | 指定要识别的视频文件扩展名列表（默认 `.mp4 .mkv`） |
+| --subtitle-exts, -s | 可选参数列表 | 指定要识别的字幕文件扩展名列表（默认 `.ass .srt`） |
+| -h | / | 显示帮助 |
+
+- *开关参数* 表示后不接受任何输入值的非必选参数；
+- *可选参数* 表示接受单项输入的、非必选的参数；
+- *可选参数列表* 表示接受一或多项以空格分隔输入的、非必选的参数。
+
+## 高级使用\*
+
+> 本节不是必读内容。
+>
+> 本节面向编程人员撰写。在上述快速使用一节中，已经介绍了命令行的使用方式；本节则将主要展示如何将本项目的 Python 代码嵌入到用户自己的 Python 代码中。
+
+本工具主要提供了以下几个供外部调用的方法：
 
 * `search(search_str)`: 在 TMDB 上搜索 search_str 对应的剧集内容。
 * `search_id_series(search_id)`: 在 TMDB 上搜索 ID 号为 search_id 的剧集。注意：剧集 ID 与剧集某一季的季 ID 并不相同。
 * `rename_local_files()`: 搜索成员变量 `self.workdir` 对应目录下的视频与字幕文件，根据之前的搜索内容，将这些文件重命名。
 
 以下均以 Python 命令行为例。不过，仍然**建议读者参考 media-renamer.py 中的内容**撰写脚本文件。
+
+以下内容的文件命名格式，均以`settings.json` 的默认  `filename_format_tv` 配置为准：
+```
+"{media_title}-S{tv_season}E{tv_episode}.{tv_eptitle}"
+```
 
 ### 例1：关键词检索
 
@@ -148,7 +207,7 @@ Select: [51882] 第 1 季 (Season 01, 1995-10-04; total 026 episodes)
 
 ### 例3：完整的测试运行示例
 
-对于 `media-renamer.py` 文件，如果它包含下述内容：
+新建一个 Python 文件，假设它包含下述内容：
 
 ```python
 from TV import TMDB
