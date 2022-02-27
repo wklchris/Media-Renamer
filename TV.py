@@ -83,7 +83,7 @@ class TMDB():
             for f in os.listdir('test'):
                 os.remove(os.path.join('test', f))
         else:
-            os.makedir('test')
+            os.makedirs('test')
         self.dir = 'test'
         
         def create_file(fname):
